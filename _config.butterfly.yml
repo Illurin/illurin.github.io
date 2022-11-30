@@ -88,7 +88,7 @@ avatar:
 disable_top_img: false
 
 # The banner image of home page
-index_img:
+index_img: /images/top_img.png
 
 # If the banner of page not setting, it will show the top_img
 default_top_img: /images/top_img.png
@@ -107,13 +107,13 @@ tag_per_img:
 
 # If the banner of category page not setting, it will show the top_img
 # note: category page, not categories page (子分類頁面的 top_img)
-category_img:
+category_img: 
 
 # The banner image of category page
 # format:
 #  - category name: xxxxx
 category_per_img:
-  - Vulkan: /images/categories/vulkan_cover.jpg
+  Vulkan: /images/categories/vulkan_cover.jpg
 
 cover:
   # display the cover or not (是否顯示文章封面)
@@ -428,7 +428,7 @@ footer:
   owner:
     enable: true
     since: 2022
-  custom_text: 
+  custom_text: Never give up your dream.
   copyright: false # Copyright of theme and framework
 
 # Analysis

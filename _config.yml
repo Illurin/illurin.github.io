@@ -104,6 +104,7 @@ theme: butterfly
 deploy:
   type: git
   repo: https://github.com/Illurin/illurin.github.io.git
+  branch: gh-pages
 
 markdown:
   plugins:
