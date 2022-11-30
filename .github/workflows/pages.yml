@@ -2,8 +2,7 @@ name: Pages
 
 on:
   push:
-    branches:
-      - master # default branch
+    branches: ["master"]
 
 jobs:
   pages:
