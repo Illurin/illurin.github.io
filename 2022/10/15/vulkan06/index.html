@@ -1,0 +1,522 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"><title>从零开始的Vulkan（六）：同步与渲染循环 | 缪之灵</title><meta name="author" content="Illurin"><meta name="copyright" content="Illurin"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="同步依赖 对于资源读写的同步一直是包括Vulkan在内的现代图形学API的重要议题，而在Vulkan中，隐式执行的同步操作非常有限，大部分的同步操作是交由用户手动操作，因此对于同步粒度的要求也上了一个台阶，在本节中，我将依据VkSpec上的描述详细探讨Vulkan中同步的细节。 执行依赖和内存依赖 Vulkan的许多同步是以操作集（Operation set） 为单位进行的，两个操作集之间的同步确">
+<meta property="og:type" content="article">
+<meta property="og:title" content="从零开始的Vulkan（六）：同步与渲染循环">
+<meta property="og:url" content="https://illurin.github.io/2022/10/15/vulkan06/index.html">
+<meta property="og:site_name" content="缪之灵">
+<meta property="og:description" content="同步依赖 对于资源读写的同步一直是包括Vulkan在内的现代图形学API的重要议题，而在Vulkan中，隐式执行的同步操作非常有限，大部分的同步操作是交由用户手动操作，因此对于同步粒度的要求也上了一个台阶，在本节中，我将依据VkSpec上的描述详细探讨Vulkan中同步的细节。 执行依赖和内存依赖 Vulkan的许多同步是以操作集（Operation set） 为单位进行的，两个操作集之间的同步确">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://illurin.github.io/images/articles/cover_0.jpg">
+<meta property="article:published_time" content="2022-10-15T15:56:57.000Z">
+<meta property="article:modified_time" content="2022-11-30T06:42:31.701Z">
+<meta property="article:author" content="Illurin">
+<meta property="article:tag" content="计算机图形学">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://illurin.github.io/images/articles/cover_0.jpg"><link rel="shortcut icon" href="/images/icon.png"><link rel="canonical" href="https://illurin.github.io/2022/10/15/vulkan06/"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css" media="print" onload="this.media='all'"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox.min.css" media="print" onload="this.media='all'"><script>const GLOBAL_CONFIG = { 
+  root: '/',
+  algolia: undefined,
+  localSearch: undefined,
+  translate: undefined,
+  noticeOutdate: undefined,
+  highlight: {"plugin":"highlighjs","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false},
+  copy: {
+    success: '复制成功',
+    error: '复制错误',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  date_suffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'fancybox',
+  Snackbar: undefined,
+  source: {
+    justifiedGallery: {
+      js: 'https://cdn.jsdelivr.net/npm/flickr-justified-gallery/dist/fjGallery.min.js',
+      css: 'https://cdn.jsdelivr.net/npm/flickr-justified-gallery/dist/fjGallery.min.css'
+    }
+  },
+  isPhotoFigcaption: true,
+  islazyload: false,
+  isAnchor: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: '从零开始的Vulkan（六）：同步与渲染循环',
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isToc: true,
+  postUpdate: '2022-11-30 14:42:31'
+}</script><noscript><style type="text/css">
+  #nav {
+    opacity: 1
+  }
+  .justified-gallery img {
+    opacity: 1
+  }
+
+  #recent-posts time,
+  #post-meta time {
+    display: inline !important
+  }
+</style></noscript><script>(win=>{
+    win.saveToLocal = {
+      set: function setWithExpiry(key, value, ttl) {
+        if (ttl === 0) return
+        const now = new Date()
+        const expiryDay = ttl * 86400000
+        const item = {
+          value: value,
+          expiry: now.getTime() + expiryDay,
+        }
+        localStorage.setItem(key, JSON.stringify(item))
+      },
+
+      get: function getWithExpiry(key) {
+        const itemStr = localStorage.getItem(key)
+
+        if (!itemStr) {
+          return undefined
+        }
+        const item = JSON.parse(itemStr)
+        const now = new Date()
+
+        if (now.getTime() > item.expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return item.value
+      }
+    }
+  
+    win.getScript = url => new Promise((resolve, reject) => {
+      const script = document.createElement('script')
+      script.src = url
+      script.async = true
+      script.onerror = reject
+      script.onload = script.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        script.onload = script.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(script)
+    })
+  
+      win.activateDarkMode = function () {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      win.activateLightMode = function () {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+      const t = saveToLocal.get('theme')
+    
+          if (t === 'dark') activateDarkMode()
+          else if (t === 'light') activateLightMode()
+        
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        if (asideStatus === 'hide') {
+          document.documentElement.classList.add('hide-aside')
+        } else {
+          document.documentElement.classList.remove('hide-aside')
+        }
+      }
+    
+    const detectApple = () => {
+      if(/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)){
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+    })(window)</script><meta name="generator" content="Hexo 6.3.0"></head><body><div id="loading-box"><div class="loading-left-bg"></div><div class="loading-right-bg"></div><div class="spinner-box"><div class="configure-border-1"><div class="configure-core"></div></div><div class="configure-border-2"><div class="configure-core"></div></div><div class="loading-word">加载中...</div></div></div><script>const preloader = {
+  endLoading: () => {
+    document.body.style.overflow = 'auto';
+    document.getElementById('loading-box').classList.add("loaded")
+  },
+  initLoading: () => {
+    document.body.style.overflow = '';
+    document.getElementById('loading-box').classList.remove("loaded")
+
+  }
+}
+window.addEventListener('load',()=> { preloader.endLoading() })
+
+if (false) {
+  document.addEventListener('pjax:send', () => { preloader.initLoading() })
+  document.addEventListener('pjax:complete', () => { preloader.endLoading() })
+}</script><div id="web_bg"></div><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img is-center"><img src="/images/avatar.jpg" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"/></div><div class="sidebar-site-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">17</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">4</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">4</div></a></div><hr/><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url('/images/articles/cover_0.jpg')"><nav id="nav"><span id="blog_name"><a id="site-name" href="/">缪之灵</a></span><div id="menus"><div class="menus_items"><div class="menus_item"><a class="site-page" href="/"><i class="fa-fw fas fa-home"></i><span> 首页</span></a></div><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> 归档</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> 标签</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> 分类</span></a></div><div class="menus_item"><a class="site-page" href="/link/"><i class="fa-fw fas fa-link"></i><span> 友链</span></a></div></div><div id="toggle-menu"><a class="site-page"><i class="fas fa-bars fa-fw"></i></a></div></div></nav><div id="post-info"><h1 class="post-title">从零开始的Vulkan（六）：同步与渲染循环</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2022-10-15T15:56:57.000Z" title="发表于 2022-10-15 23:56:57">2022-10-15</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2022-11-30T06:42:31.701Z" title="更新于 2022-11-30 14:42:31">2022-11-30</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/Vulkan/">Vulkan</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title="从零开始的Vulkan（六）：同步与渲染循环"><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">阅读量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="post-content" id="article-container"><h2 id="同步依赖">同步依赖</h2>
+<p>对于资源读写的同步一直是包括Vulkan在内的现代图形学API的重要议题，而在Vulkan中，隐式执行的同步操作非常有限，大部分的同步操作是交由用户手动操作，因此对于同步粒度的要求也上了一个台阶，在本节中，我将依据VkSpec上的描述详细探讨Vulkan中同步的细节。</p>
+<h3 id="执行依赖和内存依赖">执行依赖和内存依赖</h3>
+<p>Vulkan的许多同步是以<strong>操作集（Operation set）</strong> 为单位进行的，两个操作集之间的同步确保了第一个操作集的完成执行在第二个操作集的初始化之前，而为了实现这种操作集之间的同步，就需要定义不同的<strong>同步范围（Operation Scopes）</strong>。VkSpec向我们解释了同步操作大概的执行模式：</p>
+<ul>
+<li>让Ops1（一号操作）和Ops2（二号操作）位于不同的操作集中。</li>
+<li>定义一个Sync（同步）命令。</li>
+<li>让Scope1st（一号范围）和Scope2st（二号范围）成为Sync的同步范围。</li>
+<li>ScopedOps1（一号范围中操作）是Ops1和Scope1st的交集。</li>
+<li>ScopedOps2（二号范围中操作）是Ops2和Scope2st的交集。</li>
+<li>依次提交Ops1，Sync，Ops2到执行队列中，这会导致在ScopedOps1和ScopedOps2中出现一个ExeDep（执行依赖）。</li>
+<li>ExeDep保证了ScopedOps1完全在ScopedOps2之前执行。</li>
+</ul>
+<p><strong>执行依赖链（Execution dependency chain）</strong> 是一个由多个执行依赖组成的序列，它会为第一个依赖的ScopedOps1和最后一个依赖的ScopedOps2在执行之前规定对应的关系。对于每一对连续的执行依赖，假如第一个依赖和Scope2st的交集以及第二个依赖和Scope1st的交集并非空集，那么执行依赖链就会形成。每一个执行依赖在执行依赖链中的形成都能用以下方式来描述：</p>
+<ul>
+<li>让Sync成为一组会生成执行依赖链的同步命令。</li>
+<li>让Scope1st成为Sync的第一个命令的的第一个同步范围。</li>
+<li>让Scope2st成为Sync的最后一个命令的的第二个同步范围。</li>
+</ul>
+<p>但是仅仅使用执行依赖是无法有效确保在一个操作集中写入的值可以在另一个操作集中被访问，因此我们需要<strong>内存依赖（Memory dependency）</strong> 作为调控内存读写的同步方法。</p>
+<p>可以使用另外三种操作来控制内存访问，分别是<strong>可用性操作（Availability operations）</strong>，<strong>内存域操作（Memory domain operations）</strong> 和<strong>可见性操作（Visibility operations）</strong>。可用性操作会导致特定的内存写入数据将允许被一个内存域访问（任何可用的数据将保持可用直至相同的内存地址再次被写入或内存被释放）；内存域操作会导致对于源内存域可用的写入将变得对于目标内存域可用；可见性操作和可用性操作相反，会导致对于内存域可用的数据可见于特定内存访问操作。大部分Vulkan同步命令都指明了内存依赖。</p>
+<p>一个内存依赖就是包含了可用性和可见性操作的执行依赖，如下所示：</p>
+<ul>
+<li>前一个操作集发生在可用性操作之前。</li>
+<li>可用性操作发生在可见性操作之前。</li>
+<li>可见性操作发生在后一个操作集之前。</li>
+</ul>
+<p>同样的，我们也可以也引入一个<strong>访问范围（Access Scope）</strong> 来规定内存访问是如何变得可用和可见的。所有在内存依赖的第一个访问范围并且发生在ScopedOps1中的访问会变为可用状态；所有在内存依赖的第二个访问范围并且发生在ScopedOps2中的访问会对任何可用的写入可见。任何不在访问范围的操作不会被包含在产生的依赖中。</p>
+<p>内存依赖在两组操作之间强制规定内存访问和执行顺序的可用性和可见性，把它添加进执行依赖链后，就可以得到下面这样的顺序：</p>
+<ul>
+<li>让MemOps1（一号内存操作）成为ScopedOps1实施的内存访问操作集。</li>
+<li>让MemOps2（二号内存操作）成为ScopedOps2实施的内存访问操作集。</li>
+<li>让AccessScope1st（一号访问范围）成为Sync链的中的第一个命令的第一个访问范围。</li>
+<li>让AccessScope2st（二号访问范围）成为Sync链的中的最后一个命令的第二个访问范围。</li>
+<li>ScopedMemOps1 （一号范围中内存操作）是MemOps1和AccessScope1st的交集。</li>
+<li>ScopedMemOps2 （二号范围中内存操作）是MemOps2和AccessScope2st的交集。</li>
+<li>依次提交Ops1，Sync，Ops2到执行队列中，这会导致在ScopedOps1和ScopedOps2中出现一个<strong>MemDep（内存依赖）</strong>。</li>
+</ul>
+<blockquote>
+<p>执行依赖和内存依赖是用来解决数据的错误访问所造成的危险。读操作后的写操作带来的危险可以单纯用执行依赖进行解决，但写操作后的读操作或写操作后的写操作带来的危险需要合适的内存依赖进行解决，如过应用程序不指定依赖来解决这些危险，那么谁也不知道会造成什么后果。</p>
+</blockquote>
+<h3 id="图像布局转换">图像布局转换</h3>
+<p>作为内存依赖的一部分，图像可以从一个布局转换至另一个布局（为了优化读写），被称作<strong>图像布局转换（Image Layout Transitions）</strong>，它发生在内存依赖中的可用性操作之后，可见性操作之前。对于必要的图像子资源，图像布局转换<strong>可能</strong>会在执行内存的读写操作，因此，在执行图像布局转换之前，应用程序必须保证所有的内存写入是可用的（而可用的内存对于布局转换来说也是可见的）。</p>
+<p>在执行图像布局转换时，我们需要指定旧布局（oldLayout）和新布局（newLayout），指定的旧布局可以是未定义的（VK_IMAGE_LAYOUT_UNDEFINED）或图像原本的布局，但指定未定义的旧布局将会使图像面临数据丢失的风险。很明显，所有使用旧图像布局的操作必须发生在图像布局转换之前，所有使用新图像布局的操作必须发生在图像布局转换之后。</p>
+<p>相对于提交到同一队列的其他图像布局转换（包括由渲染通道执行的那些），通过图像内存屏障执行的布局转换以提交顺序完整执行。实际上，从每个布局转换到之前提交到同一队列的所有布局转换都存在一个隐式执行依赖关系。</p>
+<h3 id="管线阶段">管线阶段</h3>
+<p>由设备上的命令（action or synchronization command）所分派的工作包含多个操作步骤，这些操作步骤按照互相独立的序列执行，被称为<strong>管线阶段（Pipeline stages）</strong>。具体的管线阶段会在录制命令时得到指定（或由命令缓冲区所处的阶段指定），包括绘制命令，分派命令，复制命令，清除命令，同步命令在内的多数命令都需要在特定管线阶段的操作集中执行，但是同步命令并非在Vulkan所给定的管线阶段中执行。</p>
+<p>跨管线阶段的操作必须遵循严格的顺序，这个顺序由<strong>管线阶段顺序（Pipeline stage order）</strong> 指定，由Vulkan内部定义。否则，这些操作会在不同的管线阶段造成混淆，除非受到执行依赖的强制同步。</p>
+<p>虽然同步命令并非在给定的管线阶段中执行，但是可以将同步命令的同步范围指定为管线阶段的一部分，从而给不同管线阶段的操作添加必要的内存依赖。</p>
+<p>Vulkan1.3（不含扩展）所拥有的管线阶段如下所示：</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">VkPipelineStageFlagBits2</th>
+<th style="text-align:center">含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">VK_PIPELINE_STAGE_2_NONE</td>
+<td style="text-align:center">未指定阶段</td>
+</tr>
+<tr>
+<td style="text-align:center">VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT</td>
+<td style="text-align:center">间接绘制命令执行</td>
+</tr>
+<tr>
+<td style="text-align:center">VK_PIPELINE_STAGE_2_INDEX_INPUT_BIT</td>
+<td style="text-align:center">索引缓冲被使用</td>
+</tr>
+<tr>
+<td style="text-align:center">VK_PIPELINE_STAGE_2_VERTEX_ATTRIBUTE_INPUT_BIT</td>
+<td style="text-align:center">顶点缓冲被使用</td>
+</tr>
+<tr>
+<td style="text-align:center">VK_PIPELINE_STAGE_2_VERTEX_INPUT_BIT</td>
+<td style="text-align:center">包含前两个阶段</td>
+</tr>
+<tr>
+<td style="text-align:center">VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT</td>
+<td style="text-align:center">顶点着色器</td>
+</tr>
+<tr>
+<td style="text-align:center">VK_PIPELINE_STAGE_2_TESSELLATION_CONTROL_SHADER_BIT</td>
+<td style="text-align:center">细分控制着色器（外壳着色器）</td>
+</tr>
+<tr>
+<td style="text-align:center">VK_PIPELINE_STAGE_2_TESSELLATION_EVALUATION_SHADER_BIT</td>
+<td style="text-align:center">细分评估着色器（域着色器）</td>
+</tr>
+<tr>
+<td style="text-align:center">VK_PIPELINE_STAGE_2_GEOMETRY_SHADER_BIT</td>
+<td style="text-align:center">几何着色器</td>
+</tr>
+<tr>
+<td style="text-align:center">VK_PIPELINE_STAGE_2_PRE_RASTERIZATION_SHADERS_BIT</td>
+<td style="text-align:center">预光栅化（包含前四个阶段）</td>
+</tr>
+<tr>
+<td style="text-align:center">VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT</td>
+<td style="text-align:center">片元着色器（像素着色器）</td>
+</tr>
+<tr>
+<td style="text-align:center">VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT</td>
+<td style="text-align:center">早期片元测试</td>
+</tr>
+<tr>
+<td style="text-align:center">VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT</td>
+<td style="text-align:center">晚期片元测试</td>
+</tr>
+<tr>
+<td style="text-align:center">VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT</td>
+<td style="text-align:center">颜色附件输出</td>
+</tr>
+<tr>
+<td style="text-align:center">VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT</td>
+<td style="text-align:center">计算着色器</td>
+</tr>
+<tr>
+<td style="text-align:center">VK_PIPELINE_STAGE_2_HOST_BIT</td>
+<td style="text-align:center">主机对设备内存的读写</td>
+</tr>
+<tr>
+<td style="text-align:center">VK_PIPELINE_STAGE_2_COPY_BIT</td>
+<td style="text-align:center">复制命令执行</td>
+</tr>
+<tr>
+<td style="text-align:center">VK_PIPELINE_STAGE_2_BLIT_BIT</td>
+<td style="text-align:center">vkCmdBlitImage执行</td>
+</tr>
+<tr>
+<td style="text-align:center">VK_PIPELINE_STAGE_2_RESOLVE_BIT</td>
+<td style="text-align:center">vkCmdResolveImage执行</td>
+</tr>
+<tr>
+<td style="text-align:center">VK_PIPELINE_STAGE_2_CLEAR_BIT</td>
+<td style="text-align:center">vkCmdClearAttachments以外的清除命令执行</td>
+</tr>
+<tr>
+<td style="text-align:center">VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT</td>
+<td style="text-align:center">包含前四个阶段和VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_COPY_BIT_KHR扩展阶段</td>
+</tr>
+<tr>
+<td style="text-align:center">VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT</td>
+<td style="text-align:center">包含从VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT到VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT的所有阶段</td>
+</tr>
+<tr>
+<td style="text-align:center">VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT</td>
+<td style="text-align:center">包含所有命令执行阶段</td>
+</tr>
+<tr>
+<td style="text-align:center">VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT</td>
+<td style="text-align:center">等同于VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT把第二个同步范围的VkAccessFlags2设为0；作为第一个同步范围，等同于VK_PIPELINE_STAGE_2_NONE</td>
+</tr>
+<tr>
+<td style="text-align:center">VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT</td>
+<td style="text-align:center">等同于VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT把第一个同步范围的VkAccessFlags2设为0；作为第二个同步范围，等同于VK_PIPELINE_STAGE_2_NONE</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>TOP_OF_PIPE和BOTTOM_OF_PIPE几乎被弃用了，应用程序应该优先使用ALL_COMMANDS和NONE</p>
+</blockquote>
+<h3 id="访问类型（Access-Type）">访问类型（Access Type）</h3>
+<p>Vulkan中的设备内存可以被着色器调用或经由一些固定功能的管线阶段访问，而访问类型就规定了设备内存被访问的方式。多数同步命令会将访问类型作为定义内存依赖的访问范围的参数，如果一个同步命令包含了源访问掩码（Source access mask），那么它的第一个访问范围只会包括掩码中所指定的访问操作类型；同样的，如果一个同步命令包含了目标访问掩码（Destination access mask），那么它的第二个访问范围只会包括掩码中所指定的访问操作类型。</p>
+<p>Vulkan1.3（不含扩展）所拥有的访问类型如下所示：</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">VkAccessFlagBits2</th>
+<th style="text-align:center">含义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">VK_ACCESS_2_NONE</td>
+<td style="text-align:center">未指定类型</td>
+</tr>
+<tr>
+<td style="text-align:center">VK_ACCESS_2_MEMORY_READ_BIT</td>
+<td style="text-align:center">所有内存读操作</td>
+</tr>
+<tr>
+<td style="text-align:center">VK_ACCESS_2_MEMORY_WRITE_BIT</td>
+<td style="text-align:center">所有内存写操作</td>
+</tr>
+<tr>
+<td style="text-align:center">VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT</td>
+<td style="text-align:center">发生在VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT阶段的间接命令读操作</td>
+</tr>
+<tr>
+<td style="text-align:center">VK_ACCESS_2_INDEX_READ_BIT</td>
+<td style="text-align:center">发生在VK_PIPELINE_STAGE_2_INDEX_INPUT_BIT阶段的索引缓冲读操作</td>
+</tr>
+<tr>
+<td style="text-align:center">VK_ACCESS_2_VERTEX_ATTRIBUTE_READ_BIT</td>
+<td style="text-align:center">发生在VK_PIPELINE_STAGE_2_VERTEX_ATTRIBUTE_INPUT_BIT阶段的顶点缓冲读操作</td>
+</tr>
+<tr>
+<td style="text-align:center">VK_ACCESS_2_UNIFORM_READ_BIT</td>
+<td style="text-align:center">着色器对Uniform buffer的读操作</td>
+</tr>
+<tr>
+<td style="text-align:center">VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT</td>
+<td style="text-align:center">发生在VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT阶段的片元着色器对Input attachment的读操作</td>
+</tr>
+<tr>
+<td style="text-align:center">VK_ACCESS_2_SHADER_SAMPLED_READ_BIT</td>
+<td style="text-align:center">着色器对Uniform texel buffer和Sampled image的读操作</td>
+</tr>
+<tr>
+<td style="text-align:center">VK_ACCESS_2_SHADER_STORAGE_READ_BIT</td>
+<td style="text-align:center">着色器对Storage buffer，Physical storage buffer，Storage texel buffer或Storage image的读操作</td>
+</tr>
+<tr>
+<td style="text-align:center">VK_ACCESS_2_SHADER_READ_BIT</td>
+<td style="text-align:center">VK_ACCESS_2_UNIFORM_READ_BIT，VK_ACCESS_2_SHADER_SAMPLED_READ_BIT，VK_ACCESS_2_SHADER_STORAGE_READ_BIT和VK_ACCESS_2_SHADER_BINDING_TABLE_READ_BIT_KHR的总和</td>
+</tr>
+<tr>
+<td style="text-align:center">VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT</td>
+<td style="text-align:center">着色器对Storage buffer，Physical storage buffer，Storage texel buffer或Storage image的写操作</td>
+</tr>
+<tr>
+<td style="text-align:center">VK_ACCESS_2_SHADER_WRITE_BIT</td>
+<td style="text-align:center">等同于VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT</td>
+</tr>
+<tr>
+<td style="text-align:center">VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT</td>
+<td style="text-align:center">发生在VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT阶段对颜色附件的读操作</td>
+</tr>
+<tr>
+<td style="text-align:center">VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT</td>
+<td style="text-align:center">发生在VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT阶段对颜色附件的写操作</td>
+</tr>
+<tr>
+<td style="text-align:center">VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT</td>
+<td style="text-align:center">发生在VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT或VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT阶段对深度模板附件的读操作</td>
+</tr>
+<tr>
+<td style="text-align:center">VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT</td>
+<td style="text-align:center">发生在VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT或VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT阶段对深度模板附件的写操作</td>
+</tr>
+<tr>
+<td style="text-align:center">VK_ACCESS_2_TRANSFER_READ_BIT</td>
+<td style="text-align:center">发生在VK_PIPELINE_STAGE_2_COPY_BIT，VK_PIPELINE_STAGE_2_BLIT_BIT或VK_PIPELINE_STAGE_2_RESOLVE_BIT阶段在复制操作中对缓冲或图像的读操作</td>
+</tr>
+<tr>
+<td style="text-align:center">VK_ACCESS_2_TRANSFER_WRITE_BIT</td>
+<td style="text-align:center">发生在VK_PIPELINE_STAGE_2_COPY_BIT，VK_PIPELINE_STAGE_2_BLIT_BIT或VK_PIPELINE_STAGE_2_RESOLVE_BIT阶段在复制操作中对缓冲或图像的写操作</td>
+</tr>
+<tr>
+<td style="text-align:center">VK_ACCESS_2_HOST_READ_BIT</td>
+<td style="text-align:center">主机对资源的读操作</td>
+</tr>
+<tr>
+<td style="text-align:center">VK_ACCESS_2_HOST_WRITE_BIT</td>
+<td style="text-align:center">主机对资源的写操作</td>
+</tr>
+<tr>
+<td style="text-align:center">VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT</td>
+<td style="text-align:center">包含从VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT到VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT的所有阶段</td>
+</tr>
+<tr>
+<td style="text-align:center">VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT</td>
+<td style="text-align:center">包含所有命令执行阶段</td>
+</tr>
+<tr>
+<td style="text-align:center">VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT</td>
+<td style="text-align:center">等同于VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT把第二个同步范围的VkAccessFlags2设为0；作为第一个同步范围，等同于VK_PIPELINE_STAGE_2_NONE</td>
+</tr>
+<tr>
+<td style="text-align:center">VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT</td>
+<td style="text-align:center">等同于VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT把第一个同步范围的VkAccessFlags2设为0；作为第二个同步范围，等同于VK_PIPELINE_STAGE_2_NONE</td>
+</tr>
+</tbody>
+</table>
+<h3 id="依赖选项">依赖选项</h3>
+<p>对于FRAGMENT_SHADE，VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS，LATE_FRAGMENT_TESTS和COLOR_ATTACHMENT_OUTPUT这几个管线阶段而言，其中的依赖可以应用于帧缓冲整体（Framebuffer-global），也可以将帧缓冲分割成多个子集单独生效（Framebuffer-local），为dependencyFlags指定VK_DEPENDENCY_BY_REGION_BIT从而使用Framebuffer-local依赖，对于大多数架构这会更加高效。</p>
+<p>对于一个开启了多视图（Mutiview）的RenderPass，依赖可以只包含来自单一源视图（Source view）和单一目标视图（Destination view）的操作，这被称为View-local dependency；同样的，依赖也可以包含来自源子通道和目标子通道的所有视图掩码中指定的视图，这被称为View-global dependency，为dependencyFlags指定VK_DEPENDENCY_VIEW_LOCAL_BIT从而使用View-local dependency。</p>
+<p>依赖可以被指定为Device-local或Non-device-local。对于Device-local dependency，依赖会被拆分并为每个物理设备的操作单独应用；对于Non-device-local dependency，依赖会为所有参与的物理设备的操作共同应用。参与的物理设备由VkDeviceGroupRenderPassBeginInfo::deviceMask和命令缓冲区所指定的设备掩码决定。为dependencyFlags指定VK_DEPENDENCY_DEVICE_GROUP_BIT从而使用Non-device-local dependency。</p>
+<blockquote>
+<p>Semaphore和Event依赖是Device-local的并且只会在一个指定的物理设备上生效。</p>
+</blockquote>
+<h2 id="同步原语">同步原语</h2>
+<p>Vulkan为我们提供了同步原语来实现手动同步，而这些同步原语大部分时候需要搭配起来使用，下面是一些简单介绍：</p>
+<p><strong>Fences（栅栏）：</strong></p>
+<p>Fences可以和主机（CPU和内存）进行交流并得知设备（GPU和显存）完成某些任务执行的信息，用于在队列和主机之间插入一个依赖。</p>
+<p><strong>Semaphores（信号量）：</strong></p>
+<p>Semaphores可以用于在多个执行队列之间控制资源的读写许可，用于在队列操作之间或在队列操作和主机之间插入依赖。</p>
+<p><strong>Events（事件）：</strong></p>
+<p>Events提供了一种细粒度的同步方式，它可以被命令缓冲区或主机标记，并在命令缓冲区和队列内部完成等待的任务。</p>
+<p><strong>Pipeline Barriers（管线屏障）：</strong></p>
+<p>PipelineBarriers也提供了命令缓冲区内部的同步方式，但是是被单独使用的，而非像Events那样由分开的标记和等待操作。</p>
+<p><strong>Render Passes（渲染通道）：</strong></p>
+<p>RenderPasses为大多数渲染任务提供了一个重要的同步框架，我们在上一节讲解渲染通道时已经了解过了它的具体用法，大部分情况下需要将其它的同步原语高效地结合在RenderPasses中。</p>
+<h3 id="Fences">Fences</h3>
+<p>Fence拥有两个状态，分别是signaled（有信号）和unsignaled（无信号），它可以作为队列的一部分在提交时被标记为signaled，也可以在主机上使用vkResetFences方法重置为unsignaled。在主机上使用vkWaitForFences方法来等待Fences，使用vkGetFence方法来获取Fence的当前状态。下面演示了Fences的基本使用方式：</p>
+<p>创建Fence：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">auto</span> fenceInfo = vk::<span class="built_in">FenceCreateInfo</span>();</span><br><span class="line">vkInfo.device.<span class="built_in">createFence</span>(&amp;fenceInfo, <span class="number">0</span>, &amp;vkInfo.fence)</span><br></pre></td></tr></table></figure>
+<p>为队列提交绑定Fence：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vkInfo.queue.<span class="built_in">submit</span>(<span class="number">1</span>, &amp;submitInfo, vkInfo.fence);</span><br></pre></td></tr></table></figure>
+<p>在主机端等待Fence变为signaled：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">vk::Result waitingRes;</span><br><span class="line"><span class="keyword">do</span></span><br><span class="line">	waitingRes = vkInfo.device.<span class="built_in">waitForFences</span>(VK_TRUE, &amp;vkInfo.fence, VK_TRUE, UINT64_MAX);</span><br><span class="line"><span class="keyword">while</span> (waitingRes == vk::Result::eTimeout);</span><br></pre></td></tr></table></figure>
+<p>在vkWaitForFences的参数列表中，waitAll指定了结束等待需要满足的条件，若为VK_TRUE则所有指定的Fences都必须为signaled才会结束等待，否则只要有一个Fences满足条件就结束等待；timeout指定了超时时间（以纳秒为单位）超时调整为最接近的值取决于实现的超时精度允许，这可能会更长超过一纳秒，并且可能比请求的时间长。</p>
+<p>当vkWaitForFences执行时，若未满足结束等待的条件，那么就会在主机端进行阻塞并强制等待直到超过timeout时间。若满足条件，则该函数会返回VK_SUCCESS，若超时，则会返回VK_TIMEOUT，这里我使用while循环来保证超时后也会继续等待直到满足条件。</p>
+<h3 id="Semaphores">Semaphores</h3>
+<p>Binary semaphores（二进制信号量）拥有两个状态（signaled和unsignaled），而Timeline semaphores（时间线信号量）拥有严格递增的64位无符号整数有效载荷，并针对特定的参考值发出信号。一个Semaphore可以在队列操作的执行完成后被标记信号，同样的，队列操作也可等待Semaphore被标记信号，而Timeline semaphores可以额外地被主机使用vkSignalSemaphore命令来标记信号，也可以使用vkWaitSemaphores命令来等待信号。下面演示了Binary semaphores的基本使用方式：</p>
+<p>创建Semaphore：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">auto</span> semaphoreInfo = vk::<span class="built_in">SemaphoreCreateInfo</span>();</span><br><span class="line">vkInfo.device.<span class="built_in">createSemaphore</span>(&amp;semaphoreInfo, <span class="number">0</span>, &amp;vkInfo.imageAcquiredSemaphore);</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>在Vulkan1.2后，可以为pNext指定VkSemaphoreTypeCreateInfo来指明创建的是Binary semaphores抑或是Timeline semaphores并为Timeline semaphores设定初始值，默认为Binary semaphores。</p>
+</blockquote>
+<p>为队列操作指定要标记信号的Semaphore（以提交队列为例）：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">auto</span> submitInfo = vk::<span class="built_in">SubmitInfo</span>()</span><br><span class="line">	.<span class="built_in">setWaitSemaphoreCount</span>(<span class="number">1</span>)</span><br><span class="line">	.<span class="built_in">setPWaitSemaphores</span>(&amp;vkInfo.imageAcquiredSemaphore);</span><br></pre></td></tr></table></figure>
+<p>为队列操作指定要等待信号的Semaphore（以切换交换链图像为例）：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">vkInfo.device.<span class="built_in">acquireNextImageKHR</span>(vkInfo.swapchain, UINT64_MAX, vkInfo.imageAcquiredSemaphore, vk::<span class="built_in">Fence</span>(), &amp;currentBuffer)；</span><br></pre></td></tr></table></figure>
+<h3 id="Events">Events</h3>
+<p>Events拥有两种状态（signaled和unsignaled），应用程序在主机和设备端都可以改变Events的状态，但只有设备端可以等待Events的信号，以此来阻塞之后的命令的执行，主机端只可以查询Events状态。下面演示了Events的基本用法：</p>
+<p>创建Event：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">vk::Event events;</span><br><span class="line"><span class="keyword">auto</span> eventInfo = vk::<span class="built_in">EventCreateInfo</span>();</span><br><span class="line">vkInfo.device.<span class="built_in">createEvent</span>(&amp;eventInfo, <span class="number">0</span>, &amp;events);</span><br></pre></td></tr></table></figure>
+<blockquote>
+<p>在Vulkan1.3后可以为flags指定VK_EVENT_CREATE_DEVICE_ONLY_BIT来指定该event不会受到主机命令的调用。</p>
+</blockquote>
+<p>在主机端改变Event的状态：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">vkInfo.device.<span class="built_in">setEvent</span>(events);                 <span class="comment">//设为signaled</span></span><br><span class="line">vkInfo.device.<span class="built_in">resetEvent</span>(events);               <span class="comment">//设为unsignaled</span></span><br></pre></td></tr></table></figure>
+<p>在设备端改变Event的状态：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cmd.<span class="built_in">setEvent</span>(events, vk::PipelineStageFlagBits::eAllCommands);</span><br><span class="line">cmd.<span class="built_in">resetEvent</span>(events, vk::PipelineStageFlagBits::eAllCommands);</span><br></pre></td></tr></table></figure>
+<p>在设备端改变Event的状态（Vulkan1.3）：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">auto</span> depInfo = vk::<span class="built_in">DependencyInfo</span>();</span><br><span class="line">cmd.<span class="built_in">setEvent2</span>(events, &amp;depInfo);</span><br><span class="line">cmd.<span class="built_in">resetEvent2</span>(events, vk::PipelineStageFlagBits2::eAllCommands);</span><br></pre></td></tr></table></figure>
+<p>DependencyInfo指定了当setEvent命令被提交至队列时，需要的内存依赖的第一个范围，也就是在setEvent命令执行之前所需要完成的内存依赖。</p>
+<p>在设备端等待Event（Vulkan1.3）：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">auto</span> depInfo = vk::<span class="built_in">DependencyInfo</span>();</span><br><span class="line">cmd.<span class="built_in">waitEvents2</span>(<span class="number">1</span>, &amp;events, &amp;depInfo);</span><br></pre></td></tr></table></figure>
+<h3 id="Pipeline-Barriers">Pipeline Barriers</h3>
+<p>管线屏障允许我们在命令缓冲区中主动插入依赖，下面演示了管线屏障的基本用法：</p>
+<p>命令缓冲区调用管线屏障（该用法已在第三节里演示过）：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">auto</span> barrier = vk::<span class="built_in">ImageMemoryBarrier</span>()</span><br><span class="line">		.<span class="built_in">setImage</span>(image)</span><br><span class="line">		.<span class="built_in">setOldLayout</span>(vk::ImageLayout::eUndefined)</span><br><span class="line">		.<span class="built_in">setNewLayout</span>(vk::ImageLayout::eTransferDstOptimal)</span><br><span class="line">		.<span class="built_in">setSrcQueueFamilyIndex</span>(VK_QUEUE_FAMILY_IGNORED)</span><br><span class="line">		.<span class="built_in">setDstQueueFamilyIndex</span>(VK_QUEUE_FAMILY_IGNORED)</span><br><span class="line">		.<span class="built_in">setSubresourceRange</span>(subresourceRange)</span><br><span class="line">		.<span class="built_in">setDstAccessMask</span>(vk::AccessFlagBits::eTransferWrite);</span><br><span class="line">cmd.<span class="built_in">pipelineBarrier</span>(vk::PipelineStageFlagBits::eTopOfPipe, vk::PipelineStageFlagBits::eTransfer, vk::<span class="built_in">DependencyFlags</span>(), <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">1</span>, &amp;barrier);</span><br></pre></td></tr></table></figure>
+<p>命令缓冲区调用管线屏障（Vulkan1.3）（需要开启synchronization2 feature）：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">auto</span> barrier2 = vk::<span class="built_in">ImageMemoryBarrier2</span>()</span><br><span class="line">		.<span class="built_in">setImage</span>(image)</span><br><span class="line">		.<span class="built_in">setOldLayout</span>(vk::ImageLayout::eUndefined)</span><br><span class="line">		.<span class="built_in">setNewLayout</span>(vk::ImageLayout::eTransferDstOptimal)</span><br><span class="line">		.<span class="built_in">setSrcQueueFamilyIndex</span>(VK_QUEUE_FAMILY_IGNORED)</span><br><span class="line">		.<span class="built_in">setDstQueueFamilyIndex</span>(VK_QUEUE_FAMILY_IGNORED)</span><br><span class="line">		.<span class="built_in">setSubresourceRange</span>(subresourceRange)</span><br><span class="line">		.<span class="built_in">setDstAccessMask</span>(vk::AccessFlagBits2::eTransferWrite)</span><br><span class="line">		.<span class="built_in">setDstStageMask</span>(vk::PipelineStageFlagBits2::eTopOfPipe)</span><br><span class="line">		.<span class="built_in">setSrcStageMask</span>(vk::PipelineStageFlagBits2::eTransfer);</span><br><span class="line"></span><br><span class="line"><span class="keyword">auto</span> depInfo = vk::<span class="built_in">DependencyInfo</span>()</span><br><span class="line">		.<span class="built_in">setDependencyFlags</span>(vk::DependencyFlagBits::eByRegion)</span><br><span class="line">		.<span class="built_in">setMemoryBarrierCount</span>(<span class="number">0</span>)</span><br><span class="line">		.<span class="built_in">setPMemoryBarriers</span>(<span class="number">0</span>)</span><br><span class="line">		.<span class="built_in">setBufferMemoryBarrierCount</span>(<span class="number">0</span>)</span><br><span class="line">		.<span class="built_in">setPBufferMemoryBarriers</span>(<span class="number">0</span>)</span><br><span class="line">		.<span class="built_in">setImageMemoryBarrierCount</span>(<span class="number">1</span>)</span><br><span class="line">		.<span class="built_in">setPImageMemoryBarriers</span>(&amp;barrier2);</span><br><span class="line"></span><br><span class="line">cmd.<span class="built_in">pipelineBarrier2</span>(&amp;depInfo);</span><br></pre></td></tr></table></figure>
+<p>相当于将pipelineBarrier的参数移进了DependencyInfo，实际上和初版并没有什么区别，不过我使用pipelineBarrier2一直报错，原因未知。</p>
+<p><strong>管线屏障和RenderPass的一些注意事项：</strong></p>
+<p>管线屏障无法在动态渲染内部调用。</p>
+<p>当管线屏障在RenderPass内部调用时，image必须作为该Subpass的InputAttachment和颜色/深度/模板附件；Buffer memory barriers不允许被使用；图像的oldLayout和newLayout必须相同；srcQueueFamilyIndex和dstQueueFamilyIndex必须相同。</p>
+<p>当管线屏障在RenderPass外部调用时，flags不允许VK_DEPENDENCY_VIEW_LOCAL_BIT。</p>
+<h2 id="渲染循环">渲染循环</h2>
+<p>当我们做完了所有的准备工作后，就可以正式将渲染程序的整个渲染循环完全写出来，让它不断进行绘制工作了。我们使用Win32 API来创建一个计时器，控制程序大致以60帧的速度循环执行，然后将绘制相关工作放在消息循环中：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br></pre></td><td class="code"><pre><span class="line">HANDLE phWait = <span class="built_in">CreateWaitableTimer</span>(<span class="literal">NULL</span>, FALSE, <span class="literal">NULL</span>);</span><br><span class="line">LARGE_INTEGER liDueTime = &#123;&#125;;</span><br><span class="line">liDueTime.QuadPart = <span class="number">-1</span>i64;</span><br><span class="line"><span class="built_in">SetWaitableTimer</span>(phWait, &amp;liDueTime, <span class="number">1</span>, <span class="literal">NULL</span>, <span class="literal">NULL</span>, <span class="number">0</span>);</span><br><span class="line"></span><br><span class="line">DWORD dwRet = <span class="number">0</span>;</span><br><span class="line">BOOL bExit = FALSE;</span><br><span class="line"><span class="keyword">while</span> (!bExit) &#123;</span><br><span class="line">	dwRet = <span class="built_in">MsgWaitForMultipleObjects</span>(<span class="number">1</span>, &amp;phWait, FALSE, INFINITE, QS_ALLINPUT);</span><br><span class="line">	<span class="keyword">switch</span> (dwRet - WAIT_OBJECT_0) &#123;</span><br><span class="line">	<span class="keyword">case</span> <span class="number">0</span>:</span><br><span class="line">	<span class="keyword">case</span> WAIT_TIMEOUT: &#123;</span><br><span class="line">		<span class="comment">//渲染循环相关代码</span></span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="keyword">break</span>;</span><br><span class="line">	<span class="keyword">case</span> <span class="number">1</span>: &#123;</span><br><span class="line">		<span class="keyword">while</span> (::<span class="built_in">PeekMessage</span>(&amp;msg, <span class="literal">NULL</span>, <span class="number">0</span>, <span class="number">0</span>, PM_REMOVE)) &#123;</span><br><span class="line">			<span class="keyword">if</span> (WM_QUIT != msg.message) &#123;</span><br><span class="line">				::<span class="built_in">TranslateMessage</span>(&amp;msg);</span><br><span class="line">				::<span class="built_in">DispatchMessage</span>(&amp;msg);</span><br><span class="line">			&#125;</span><br><span class="line">			<span class="keyword">else</span> &#123;</span><br><span class="line">				bExit = TRUE;</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">break</span>;</span><br><span class="line">	<span class="keyword">default</span>:</span><br><span class="line">		<span class="keyword">break</span>;</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>一个完整的渲染循环的逻辑大致如下所示：</p>
+<p><img src="/images/articles/vulkan06/image_0.png" alt="渲染循环示意图"></p>
+<p>在本程序中，我使用双重缓冲并为每一个缓冲都配备了一个命令缓冲区，所以在渲染循环的最开始，我们需要切换至对应的帧缓冲和命令缓冲区：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">uint32_t</span> currentBuffer;</span><br><span class="line">vkInfo.device.<span class="built_in">acquireNextImageKHR</span>(vkInfo.swapchain, UINT64_MAX, vkInfo.imageAcquiredSemaphore, vk::<span class="built_in">Fence</span>(), &amp;currentBuffer);</span><br><span class="line">	</span><br><span class="line"><span class="keyword">auto</span> cmdBeginInfo = vk::<span class="built_in">CommandBufferBeginInfo</span>()</span><br><span class="line">	.<span class="built_in">setFlags</span>(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);</span><br><span class="line"></span><br><span class="line">vkInfo.cmd[currentBuffer].<span class="built_in">begin</span>(&amp;cmdBeginInfo);</span><br><span class="line"><span class="built_in">DrawObject</span>(vkInfo.cmd[currentBuffer], currentBuffer);</span><br><span class="line">vkInfo.cmd[currentBuffer].<span class="built_in">end</span>();</span><br></pre></td></tr></table></figure>
+<p>vkAcquireNextImageKHR函数通知了交换链自行切换至下一个要渲染的图像，并会返回当前的图像索引，而timeout参数指定了当没有可用的图像时该函数会等待多长时间。同时，这里指定了一个Semaphore以用于同步。</p>
+<p>DrawObject函数的定义如下所示：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="type">void</span> <span class="title">Scene::DrawObject</span><span class="params">(vk::CommandBuffer cmd, <span class="type">uint32_t</span> currentBuffer)</span> </span>&#123;</span><br><span class="line">        <span class="comment">//绘制阴影贴图</span></span><br><span class="line">	shadowMap.<span class="built_in">BeginRenderPass</span>(&amp;cmd);</span><br><span class="line"></span><br><span class="line">	cmd.<span class="built_in">bindDescriptorSets</span>(vk::PipelineBindPoint::eGraphics, vkInfo-&gt;pipelineLayout[<span class="string">&quot;scene&quot;</span>], <span class="number">2</span>, <span class="number">1</span>, &amp;shadowPassDesc, <span class="number">0</span>, <span class="number">0</span>);</span><br><span class="line">	cmd.<span class="built_in">bindPipeline</span>(vk::PipelineBindPoint::eGraphics, vkInfo-&gt;pipelines[<span class="string">&quot;shadow&quot;</span>]);</span><br><span class="line"></span><br><span class="line">	vk::DeviceSize offsets[] = &#123; <span class="number">0</span> &#125;;</span><br><span class="line">	cmd.<span class="built_in">bindIndexBuffer</span>(indexBuffer-&gt;<span class="built_in">GetBuffer</span>(), <span class="number">0</span>, vk::IndexType::eUint32);</span><br><span class="line">	vk::Buffer tempBuffer = vertexBuffer-&gt;<span class="built_in">GetBuffer</span>();</span><br><span class="line">	cmd.<span class="built_in">bindVertexBuffers</span>(<span class="number">0</span>, <span class="number">1</span>, &amp;tempBuffer, offsets);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> (<span class="keyword">auto</span>&amp; meshRenderer : meshRenderers) &#123;</span><br><span class="line">		cmd.<span class="built_in">bindDescriptorSets</span>(vk::PipelineBindPoint::eGraphics, vkInfo-&gt;pipelineLayout[<span class="string">&quot;scene&quot;</span>], <span class="number">0</span>, <span class="number">1</span>, &amp;meshRenderer.gameObject-&gt;descSet, <span class="number">0</span>, <span class="number">0</span>);</span><br><span class="line">		cmd.<span class="built_in">bindDescriptorSets</span>(vk::PipelineBindPoint::eGraphics, vkInfo-&gt;pipelineLayout[<span class="string">&quot;scene&quot;</span>], <span class="number">1</span>, <span class="number">1</span>, &amp;meshRenderer.gameObject-&gt;material-&gt;descSet, <span class="number">0</span>, <span class="number">0</span>);</span><br><span class="line">		cmd.<span class="built_in">drawIndexed</span>(meshRenderer.indices.<span class="built_in">size</span>(), <span class="number">1</span>, meshRenderer.startIndexLocation, meshRenderer.baseVertexLocation, <span class="number">1</span>);</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> (skinnedModelInst.<span class="built_in">size</span>() &gt; <span class="number">0</span>) &#123;</span><br><span class="line">		cmd.<span class="built_in">bindPipeline</span>(vk::PipelineBindPoint::eGraphics, vkInfo-&gt;pipelines[<span class="string">&quot;skinnedShadow&quot;</span>]);</span><br><span class="line">		tempBuffer = skinnedVertexBuffer-&gt;<span class="built_in">GetBuffer</span>();</span><br><span class="line">		cmd.<span class="built_in">bindVertexBuffers</span>(<span class="number">0</span>, <span class="number">1</span>, &amp;tempBuffer, offsets);</span><br><span class="line">		<span class="keyword">for</span> (<span class="keyword">auto</span>&amp; skinnedMeshRenderer : skinnedMeshRenderers) &#123;</span><br><span class="line">			cmd.<span class="built_in">bindDescriptorSets</span>(vk::PipelineBindPoint::eGraphics, vkInfo-&gt;pipelineLayout[<span class="string">&quot;scene&quot;</span>], <span class="number">0</span>, <span class="number">1</span>, &amp;skinnedMeshRenderer.gameObject-&gt;descSet, <span class="number">0</span>, <span class="number">0</span>);</span><br><span class="line">			cmd.<span class="built_in">bindDescriptorSets</span>(vk::PipelineBindPoint::eGraphics, vkInfo-&gt;pipelineLayout[<span class="string">&quot;scene&quot;</span>], <span class="number">4</span>, <span class="number">1</span>, &amp;skinnedModelInst[skinnedMeshRenderer.skinnedModelIndex].descSet, <span class="number">0</span>, <span class="number">0</span>);</span><br><span class="line">			cmd.<span class="built_in">drawIndexed</span>(skinnedMeshRenderer.indices.<span class="built_in">size</span>(), <span class="number">1</span>, skinnedMeshRenderer.startIndexLocation, skinnedMeshRenderer.baseVertexLocation, <span class="number">1</span>);</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	cmd.<span class="built_in">endRenderPass</span>();</span><br><span class="line"></span><br><span class="line">        <span class="comment">//延迟渲染主场景</span></span><br><span class="line">	renderEngine.<span class="built_in">BeginDeferredShading</span>(cmd);</span><br><span class="line"></span><br><span class="line">	cmd.<span class="built_in">bindDescriptorSets</span>(vk::PipelineBindPoint::eGraphics, vkInfo-&gt;pipelineLayout[<span class="string">&quot;scene&quot;</span>], <span class="number">2</span>, <span class="number">1</span>, &amp;scenePassDesc, <span class="number">0</span>, <span class="number">0</span>);</span><br><span class="line">	tempBuffer = vertexBuffer-&gt;<span class="built_in">GetBuffer</span>();</span><br><span class="line">	cmd.<span class="built_in">bindVertexBuffers</span>(<span class="number">0</span>, <span class="number">1</span>, &amp;tempBuffer, offsets);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; (<span class="type">int</span>)ShaderModel::shaderModelCount; i++) &#123;</span><br><span class="line">		cmd.<span class="built_in">bindPipeline</span>(vk::PipelineBindPoint::eGraphics, renderEngine.deferredShading.outputPipeline[i]);</span><br><span class="line">		<span class="keyword">for</span> (<span class="keyword">auto</span>&amp; meshRenderer : shaderModel[i]) &#123;</span><br><span class="line">			cmd.<span class="built_in">bindDescriptorSets</span>(vk::PipelineBindPoint::eGraphics, vkInfo-&gt;pipelineLayout[<span class="string">&quot;scene&quot;</span>], <span class="number">0</span>, <span class="number">1</span>, &amp;meshRenderer-&gt;gameObject-&gt;descSet, <span class="number">0</span>, <span class="number">0</span>);</span><br><span class="line">			cmd.<span class="built_in">bindDescriptorSets</span>(vk::PipelineBindPoint::eGraphics, vkInfo-&gt;pipelineLayout[<span class="string">&quot;scene&quot;</span>], <span class="number">1</span>, <span class="number">1</span>, &amp;meshRenderer-&gt;gameObject-&gt;material-&gt;descSet, <span class="number">0</span>, <span class="number">0</span>);</span><br><span class="line">			cmd.<span class="built_in">drawIndexed</span>(meshRenderer-&gt;indices.<span class="built_in">size</span>(), <span class="number">1</span>, meshRenderer-&gt;startIndexLocation, meshRenderer-&gt;baseVertexLocation, <span class="number">1</span>);</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	cmd.<span class="built_in">nextSubpass</span>(vk::SubpassContents::eInline);</span><br><span class="line">	cmd.<span class="built_in">bindPipeline</span>(vk::PipelineBindPoint::eGraphics, renderEngine.deferredShading.processingPipeline);</span><br><span class="line">	cmd.<span class="built_in">bindDescriptorSets</span>(vk::PipelineBindPoint::eGraphics, renderEngine.deferredShading.pipelineLayout, <span class="number">1</span>, <span class="number">1</span>, &amp;renderEngine.gbuffer.descSet, <span class="number">0</span>, <span class="number">0</span>);</span><br><span class="line">	cmd.<span class="built_in">bindDescriptorSets</span>(vk::PipelineBindPoint::eGraphics, renderEngine.deferredShading.pipelineLayout, <span class="number">2</span>, <span class="number">1</span>, &amp;scenePassDesc, <span class="number">0</span>, <span class="number">0</span>);</span><br><span class="line">	cmd.<span class="built_in">bindDescriptorSets</span>(vk::PipelineBindPoint::eGraphics, renderEngine.deferredShading.pipelineLayout, <span class="number">3</span>, <span class="number">1</span>, &amp;drawShadowDesc, <span class="number">0</span>, <span class="number">0</span>);</span><br><span class="line">	cmd.<span class="built_in">draw</span>(<span class="number">4</span>, <span class="number">1</span>, <span class="number">0</span>, <span class="number">0</span>);</span><br><span class="line"></span><br><span class="line">	cmd.<span class="built_in">endRenderPass</span>();</span><br><span class="line"></span><br><span class="line">        <span class="comment">//前向渲染物体模型</span></span><br><span class="line">	renderEngine.<span class="built_in">BeginForwardShading</span>(cmd);</span><br><span class="line"></span><br><span class="line">	cmd.<span class="built_in">bindDescriptorSets</span>(vk::PipelineBindPoint::eGraphics, vkInfo-&gt;pipelineLayout[<span class="string">&quot;scene&quot;</span>], <span class="number">2</span>, <span class="number">1</span>, &amp;scenePassDesc, <span class="number">0</span>, <span class="number">0</span>);</span><br><span class="line">	cmd.<span class="built_in">bindDescriptorSets</span>(vk::PipelineBindPoint::eGraphics, vkInfo-&gt;pipelineLayout[<span class="string">&quot;scene&quot;</span>], <span class="number">3</span>, <span class="number">1</span>, &amp;drawShadowDesc, <span class="number">0</span>, <span class="number">0</span>);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (skinnedModelInst.<span class="built_in">size</span>() &gt; <span class="number">0</span>) &#123;</span><br><span class="line">		tempBuffer = skinnedVertexBuffer-&gt;<span class="built_in">GetBuffer</span>();</span><br><span class="line">		cmd.<span class="built_in">bindVertexBuffers</span>(<span class="number">0</span>, <span class="number">1</span>, &amp;tempBuffer, offsets);</span><br><span class="line">		<span class="keyword">for</span> (<span class="type">int</span> i = <span class="number">0</span>; i &lt; (<span class="type">int</span>)ShaderModel::shaderModelCount; i++) &#123;</span><br><span class="line">			cmd.<span class="built_in">bindPipeline</span>(vk::PipelineBindPoint::eGraphics, skinnedMeshPipeline[i]);</span><br><span class="line">			<span class="keyword">for</span> (<span class="keyword">auto</span>&amp; skinnedMeshRenderer : skinnedShaderModel[i]) &#123;</span><br><span class="line">				cmd.<span class="built_in">bindDescriptorSets</span>(vk::PipelineBindPoint::eGraphics, vkInfo-&gt;pipelineLayout[<span class="string">&quot;scene&quot;</span>], <span class="number">0</span>, <span class="number">1</span>, &amp;skinnedMeshRenderer-&gt;gameObject-&gt;descSet, <span class="number">0</span>, <span class="number">0</span>);</span><br><span class="line">				cmd.<span class="built_in">bindDescriptorSets</span>(vk::PipelineBindPoint::eGraphics, vkInfo-&gt;pipelineLayout[<span class="string">&quot;scene&quot;</span>], <span class="number">1</span>, <span class="number">1</span>, &amp;skinnedMeshRenderer-&gt;gameObject-&gt;material-&gt;descSet, <span class="number">0</span>, <span class="number">0</span>);</span><br><span class="line">				cmd.<span class="built_in">bindDescriptorSets</span>(vk::PipelineBindPoint::eGraphics, vkInfo-&gt;pipelineLayout[<span class="string">&quot;scene&quot;</span>], <span class="number">4</span>, <span class="number">1</span>, &amp;skinnedModelInst[skinnedMeshRenderer-&gt;skinnedModelIndex].descSet, <span class="number">0</span>, <span class="number">0</span>);</span><br><span class="line">				cmd.<span class="built_in">drawIndexed</span>(skinnedMeshRenderer-&gt;indices.<span class="built_in">size</span>(), <span class="number">1</span>, skinnedMeshRenderer-&gt;startIndexLocation, skinnedMeshRenderer-&gt;baseVertexLocation, <span class="number">1</span>);</span><br><span class="line">			&#125;</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">//绘制天空盒</span></span><br><span class="line">	tempBuffer = vertexBuffer-&gt;<span class="built_in">GetBuffer</span>();</span><br><span class="line">	cmd.<span class="built_in">bindVertexBuffers</span>(<span class="number">0</span>, <span class="number">1</span>, &amp;tempBuffer, offsets);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">if</span> (skybox.use) &#123;</span><br><span class="line">		cmd.<span class="built_in">bindPipeline</span>(vk::PipelineBindPoint::eGraphics, vkInfo-&gt;pipelines[<span class="string">&quot;skybox&quot;</span>]);</span><br><span class="line">		cmd.<span class="built_in">bindDescriptorSets</span>(vk::PipelineBindPoint::eGraphics, vkInfo-&gt;pipelineLayout[<span class="string">&quot;skybox&quot;</span>], <span class="number">0</span>, <span class="number">1</span>, &amp;skybox.descSet, <span class="number">0</span>, <span class="number">0</span>);</span><br><span class="line">		cmd.<span class="built_in">bindDescriptorSets</span>(vk::PipelineBindPoint::eGraphics, vkInfo-&gt;pipelineLayout[<span class="string">&quot;skybox&quot;</span>], <span class="number">1</span>, <span class="number">1</span>, &amp;scenePassDesc, <span class="number">0</span>, <span class="number">0</span>);</span><br><span class="line">		cmd.<span class="built_in">drawIndexed</span>(skybox.indexCount, <span class="number">1</span>, skybox.startIndexLocation, skybox.baseVertexLocation, <span class="number">1</span>);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	<span class="comment">//绘制粒子系统</span></span><br><span class="line">	cmd.<span class="built_in">bindDescriptorSets</span>(vk::PipelineBindPoint::eGraphics, vkInfo-&gt;pipelineLayout[<span class="string">&quot;scene&quot;</span>], <span class="number">2</span>, <span class="number">1</span>, &amp;scenePassDesc, <span class="number">0</span>, <span class="number">0</span>);</span><br><span class="line">	cmd.<span class="built_in">bindDescriptorSets</span>(vk::PipelineBindPoint::eGraphics, vkInfo-&gt;pipelineLayout[<span class="string">&quot;scene&quot;</span>], <span class="number">3</span>, <span class="number">1</span>, &amp;drawShadowDesc, <span class="number">0</span>, <span class="number">0</span>);</span><br><span class="line"></span><br><span class="line">	<span class="keyword">for</span> (<span class="keyword">auto</span>&amp; particleSystem : particleSystems) &#123;</span><br><span class="line">		<span class="keyword">if</span> (particleSystem.subParticle) &#123;</span><br><span class="line">			cmd.<span class="built_in">bindPipeline</span>(vk::PipelineBindPoint::eGraphics, vkInfo-&gt;pipelines[<span class="string">&quot;smoke&quot;</span>]);</span><br><span class="line">			cmd.<span class="built_in">bindDescriptorSets</span>(vk::PipelineBindPoint::eGraphics, vkInfo-&gt;pipelineLayout[<span class="string">&quot;scene&quot;</span>], <span class="number">0</span>, <span class="number">1</span>, &amp;particleSystem.subParticle-&gt;descSet, <span class="number">0</span>, <span class="number">0</span>);</span><br><span class="line">			cmd.<span class="built_in">bindDescriptorSets</span>(vk::PipelineBindPoint::eGraphics, vkInfo-&gt;pipelineLayout[<span class="string">&quot;scene&quot;</span>], <span class="number">1</span>, <span class="number">1</span>, &amp;particleSystem.subParticle-&gt;material-&gt;descSet, <span class="number">0</span>, <span class="number">0</span>);</span><br><span class="line">			particleSystem.<span class="built_in">DrawSubParticles</span>(&amp;cmd);</span><br><span class="line">		&#125;</span><br><span class="line">		cmd.<span class="built_in">bindPipeline</span>(vk::PipelineBindPoint::eGraphics, vkInfo-&gt;pipelines[<span class="string">&quot;flame&quot;</span>]);</span><br><span class="line">		cmd.<span class="built_in">bindDescriptorSets</span>(vk::PipelineBindPoint::eGraphics, vkInfo-&gt;pipelineLayout[<span class="string">&quot;scene&quot;</span>], <span class="number">0</span>, <span class="number">1</span>, &amp;particleSystem.particle-&gt;descSet, <span class="number">0</span>, <span class="number">0</span>);</span><br><span class="line">		cmd.<span class="built_in">bindDescriptorSets</span>(vk::PipelineBindPoint::eGraphics, vkInfo-&gt;pipelineLayout[<span class="string">&quot;scene&quot;</span>], <span class="number">1</span>, <span class="number">1</span>, &amp;particleSystem.particle-&gt;material-&gt;descSet, <span class="number">0</span>, <span class="number">0</span>);</span><br><span class="line">		particleSystem.<span class="built_in">DrawParticles</span>(&amp;cmd);</span><br><span class="line">	&#125;</span><br><span class="line"></span><br><span class="line">	cmd.<span class="built_in">endRenderPass</span>();</span><br><span class="line"></span><br><span class="line">	<span class="comment">//进行后处理</span></span><br><span class="line">	bloom-&gt;<span class="built_in">Begin</span>(cmd, currentBuffer);</span><br><span class="line"></span><br><span class="line">	<span class="comment">//绘制GUI</span></span><br><span class="line">	imgui-&gt;<span class="built_in">DrawFrame</span>(cmd);</span><br><span class="line"></span><br><span class="line">	cmd.<span class="built_in">endRenderPass</span>();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>关于RenderPass和Subpass的一些细节在上一节中已经讲过。</p>
+<p>对于每一个渲染Pass，我们首先调用vkCmdBindDescriptorSets绑定整个场景的常量缓冲（包含了观察矩阵和透视投影矩阵），然后调用vkCmdBindVertexBuffers绑定顶点缓冲（已经提前将所有要绘制物体的顶点存储在了同一个顶点缓冲中），如果使用索引绘制的话，还需要调用vkCmdBindIndexBuffer绑定索引缓冲。接下来对于每一个物体，都需要调用vkCmdBindPipeline绑定需要使用的渲染管线，调用vkCmdBindDescriptorSets绑定物体专属的常量缓冲（包括世界矩阵，物体的材质光照属性）。在完成这些绑定工作后，使用vkCmdDraw（索引绘制为vkCmdDrawIndexed）调用DrawCall完成绘制。</p>
+<p>在录制完所有命令关闭命令缓冲区之后，就可以将命令缓冲区提交给队列，把所有命令放到队列上开始执行了：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//Submit the command list</span></span><br><span class="line">vk::PipelineStageFlags dstStageMask[] = &#123;</span><br><span class="line">	vk::PipelineStageFlagBits::eBottomOfPipe</span><br><span class="line">&#125;;</span><br><span class="line">	</span><br><span class="line">vkInfo.device.<span class="built_in">resetFences</span>(<span class="number">1</span>, &amp;vkInfo.fence);</span><br><span class="line">	</span><br><span class="line"><span class="keyword">auto</span> submitInfo = vk::<span class="built_in">SubmitInfo</span>()</span><br><span class="line">		.<span class="built_in">setCommandBufferCount</span>(<span class="number">1</span>)</span><br><span class="line">		.<span class="built_in">setPCommandBuffers</span>(&amp;vkInfo.cmd[currentBuffer])</span><br><span class="line">		.<span class="built_in">setWaitSemaphoreCount</span>(<span class="number">1</span>)</span><br><span class="line">		.<span class="built_in">setPWaitSemaphores</span>(&amp;vkInfo.imageAcquiredSemaphore)</span><br><span class="line">		.<span class="built_in">setPWaitDstStageMask</span>(dstStageMask);</span><br><span class="line">vkInfo.queue.<span class="built_in">submit</span>(<span class="number">1</span>, &amp;submitInfo, vkInfo.fence);</span><br><span class="line"></span><br><span class="line"><span class="comment">//Wait for GPU to be finished</span></span><br><span class="line">vk::Result waitingRes;</span><br><span class="line"><span class="keyword">do</span></span><br><span class="line">	waitingRes = vkInfo.device.<span class="built_in">waitForFences</span>(VK_TRUE, &amp;vkInfo.fence, VK_TRUE, UINT64_MAX);</span><br><span class="line"><span class="keyword">while</span> (waitingRes == vk::Result::eTimeout);</span><br></pre></td></tr></table></figure>
+<p>这里使用了一个Fence来完成GPU和CPU的同步，只有当队列中的命令执行完成后，才会允许CPU进行接下来的工作，防止图像还没渲染完成就被呈现造成不必要的错误。</p>
+<p>最后就是将渲染完成的图像呈递给交换链，呈现在显示器上了：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">auto</span> presentInfo = vk::<span class="built_in">PresentInfoKHR</span>()</span><br><span class="line">		.<span class="built_in">setPImageIndices</span>(&amp;currentBuffer)</span><br><span class="line">		.<span class="built_in">setSwapchainCount</span>(<span class="number">1</span>)</span><br><span class="line">		.<span class="built_in">setPSwapchains</span>(&amp;vkInfo.swapchain);</span><br><span class="line">vkInfo.queue.<span class="built_in">presentKHR</span>(&amp;presentInfo)；</span><br></pre></td></tr></table></figure>
+<p>至此，我们已经将渲染循环的代码流程完整走了一遍，也就是说结合前五节的内容，终于可以真正地使用Vulkan绘制出图像了。</p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta">文章作者: </span><span class="post-copyright-info"><a href="https://illurin.github.io">Illurin</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta">文章链接: </span><span class="post-copyright-info"><a href="https://illurin.github.io/2022/10/15/vulkan06/">https://illurin.github.io/2022/10/15/vulkan06/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta">版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来自 <a href="https://illurin.github.io" target="_blank">缪之灵</a>！</span></div></div><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9B%BE%E5%BD%A2%E5%AD%A6/">计算机图形学</a></div><div class="post_share"><div class="social-share" data-image="/images/articles/cover_0.jpg" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><div class="prev-post pull-left"><a href="/2022/10/15/vulkan05/"><img class="prev-cover" src="/images/articles/cover_0.jpg" onerror="onerror=null;src='/img/404.jpg'" alt="cover of previous post"><div class="pagination-info"><div class="label">上一篇</div><div class="prev_info">从零开始的Vulkan（五）：描述符与渲染通道</div></div></a></div><div class="next-post pull-right"><a href="/2022/10/15/vulkan06-1/"><img class="next-cover" src="/images/articles/cover_1.png" onerror="onerror=null;src='/img/404.jpg'" alt="cover of next post"><div class="pagination-info"><div class="label">下一篇</div><div class="next_info">从零开始的Vulkan（附一）：多Subpass实现延迟渲染</div></div></a></div></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>相关推荐</span></div><div class="relatedPosts-list"><div><a href="/2022/10/16/renderer04/" title="软光线追踪渲染器学习笔记（一）：Whitted-Style光线追踪"><img class="cover" src="/images/articles/cover_4.jpg" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2022-10-16</div><div class="title">软光线追踪渲染器学习笔记（一）：Whitted-Style光线追踪</div></div></a></div><div><a href="/2022/10/15/renderer01/" title="软光栅化渲染器学习笔记（一）：简单几何图元"><img class="cover" src="/images/articles/cover_3.png" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2022-10-15</div><div class="title">软光栅化渲染器学习笔记（一）：简单几何图元</div></div></a></div><div><a href="/2022/10/16/renderer02/" title="软光栅化渲染器学习笔记（二）：深入光栅化细节"><img class="cover" src="/images/articles/cover_3.png" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2022-10-16</div><div class="title">软光栅化渲染器学习笔记（二）：深入光栅化细节</div></div></a></div><div><a href="/2022/10/15/assimp/" title="Assimp与模型渲染的故事：模型加载，骨骼蒙皮动画"><img class="cover" src="/images/articles/cover_2.png" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2022-10-15</div><div class="title">Assimp与模型渲染的故事：模型加载，骨骼蒙皮动画</div></div></a></div><div><a href="/2022/10/16/renderer03/" title="软光栅化渲染器学习笔记（三）：细分几何"><img class="cover" src="/images/articles/cover_3.png" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2022-10-16</div><div class="title">软光栅化渲染器学习笔记（三）：细分几何</div></div></a></div><div><a href="/2022/10/14/vulkan01/" title="从零开始的Vulkan（一）：设备与调试"><img class="cover" src="/images/articles/cover_0.jpg" alt="cover"><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2022-10-14</div><div class="title">从零开始的Vulkan（一）：设备与调试</div></div></a></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info"><div class="is-center"><div class="avatar-img"><img src="/images/avatar.jpg" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info__name">Illurin</div><div class="author-info__description">缪之灵的个人博客</div></div><div class="card-info-data site-data is-center"><a href="/archives/"><div class="headline">文章</div><div class="length-num">17</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">4</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">4</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/Illurin"><i class="fab fa-github"></i><span>关注我的Github</span></a><div class="card-info-social-icons is-center"><a class="social-icon" href="https://github.com/Illurin" target="_blank" title="Github"><i class="fa-brands fa-github-alt"></i></a><a class="social-icon" href="https://www.zhihu.com/people/96-61-29-67" target="_blank" title="知乎"><i class="fa-brands fa-zhihu"></i></a></div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%90%8C%E6%AD%A5%E4%BE%9D%E8%B5%96"><span class="toc-number">1.</span> <span class="toc-text">同步依赖</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%89%A7%E8%A1%8C%E4%BE%9D%E8%B5%96%E5%92%8C%E5%86%85%E5%AD%98%E4%BE%9D%E8%B5%96"><span class="toc-number">1.1.</span> <span class="toc-text">执行依赖和内存依赖</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%9B%BE%E5%83%8F%E5%B8%83%E5%B1%80%E8%BD%AC%E6%8D%A2"><span class="toc-number">1.2.</span> <span class="toc-text">图像布局转换</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E7%AE%A1%E7%BA%BF%E9%98%B6%E6%AE%B5"><span class="toc-number">1.3.</span> <span class="toc-text">管线阶段</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E8%AE%BF%E9%97%AE%E7%B1%BB%E5%9E%8B%EF%BC%88Access-Type%EF%BC%89"><span class="toc-number">1.4.</span> <span class="toc-text">访问类型（Access Type）</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BE%9D%E8%B5%96%E9%80%89%E9%A1%B9"><span class="toc-number">1.5.</span> <span class="toc-text">依赖选项</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%90%8C%E6%AD%A5%E5%8E%9F%E8%AF%AD"><span class="toc-number">2.</span> <span class="toc-text">同步原语</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#Fences"><span class="toc-number">2.1.</span> <span class="toc-text">Fences</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Semaphores"><span class="toc-number">2.2.</span> <span class="toc-text">Semaphores</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Events"><span class="toc-number">2.3.</span> <span class="toc-text">Events</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Pipeline-Barriers"><span class="toc-number">2.4.</span> <span class="toc-text">Pipeline Barriers</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%B8%B2%E6%9F%93%E5%BE%AA%E7%8E%AF"><span class="toc-number">3.</span> <span class="toc-text">渲染循环</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item"><a class="thumbnail" href="/2022/11/29/linear-algebra01/" title="线性空间与线性变换"><img src="/images/articles/cover_6.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="线性空间与线性变换"/></a><div class="content"><a class="title" href="/2022/11/29/linear-algebra01/" title="线性空间与线性变换">线性空间与线性变换</a><time datetime="2022-11-29T12:00:00.000Z" title="发表于 2022-11-29 20:00:00">2022-11-29</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2022/11/12/math-analysis03/" title="数学分析初步（三）：积分"><img src="/images/articles/cover_5.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="数学分析初步（三）：积分"/></a><div class="content"><a class="title" href="/2022/11/12/math-analysis03/" title="数学分析初步（三）：积分">数学分析初步（三）：积分</a><time datetime="2022-11-12T12:00:00.000Z" title="发表于 2022-11-12 20:00:00">2022-11-12</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2022/11/12/math-analysis02/" title="数学分析初步（二）：导数与微分"><img src="/images/articles/cover_5.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="数学分析初步（二）：导数与微分"/></a><div class="content"><a class="title" href="/2022/11/12/math-analysis02/" title="数学分析初步（二）：导数与微分">数学分析初步（二）：导数与微分</a><time datetime="2022-11-12T02:00:00.000Z" title="发表于 2022-11-12 10:00:00">2022-11-12</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2022/11/11/math-analysis01/" title="数学分析初步（一）：数与极限"><img src="/images/articles/cover_5.png" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="数学分析初步（一）：数与极限"/></a><div class="content"><a class="title" href="/2022/11/11/math-analysis01/" title="数学分析初步（一）：数与极限">数学分析初步（一）：数与极限</a><time datetime="2022-11-10T16:00:00.000Z" title="发表于 2022-11-11 00:00:00">2022-11-11</time></div></div><div class="aside-list-item"><a class="thumbnail" href="/2022/10/16/renderer05/" title="软光线追踪渲染器学习笔记（二）：路径追踪与全局光照"><img src="/images/articles/cover_4.jpg" onerror="this.onerror=null;this.src='/img/404.jpg'" alt="软光线追踪渲染器学习笔记（二）：路径追踪与全局光照"/></a><div class="content"><a class="title" href="/2022/10/16/renderer05/" title="软光线追踪渲染器学习笔记（二）：路径追踪与全局光照">软光线追踪渲染器学习笔记（二）：路径追踪与全局光照</a><time datetime="2022-10-16T12:00:00.000Z" title="发表于 2022-10-16 20:00:00">2022-10-16</time></div></div></div></div></div></div></main><footer id="footer" style="background-image: url('/images/articles/cover_0.jpg')"><div id="footer-wrap"><div class="copyright">&copy;2022 By Illurin</div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="浅色和深色模式转换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside_config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox.umd.min.js"></script><div class="js-pjax"></div><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div></body></html>
