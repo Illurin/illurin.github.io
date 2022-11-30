@@ -1,0 +1,14 @@
+- class_name: 友情链接
+  class_desc: 欢迎各位的支持
+  link_list:
+    - name: ZuoTiJia
+      link: https://zuotijia.github.io/
+    - name: SAGIRI'S BLOG
+      link: http://blog.sagiri.tech/
+    - name: 二进制大脑
+      link: https://bin-brain.com/
+      avatar: https://pic.bin-brain.com/i/bin-brai.png
+    - name: 石上三年Official
+      link: https://blog.cirno.fun/
+    - name: Linus-Shyu
+      link: https://linus-shyu.github.io/
