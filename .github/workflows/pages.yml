@@ -17,7 +17,6 @@ jobs:
       uses: theme-keep/hexo-deploy-github-pages-action@master
       env:
         PERSONAL_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        PUBLISH_DIR: ./public
 
         # The repository the action should deploy to.
         PUBLISH_REPOSITORY: Illurin/illurin.github.io
