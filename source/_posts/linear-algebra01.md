@@ -108,7 +108,7 @@ $V_1+V_2$ 为直和的充分必要条件是 $V_1\cap V_2=\{\boldsymbol 0\}$ 。
 3. 有限维线性空间的维数是唯一确定的。
 4. $n$ 维线性空间中任意 $n$ 个线性无关的向量均可构成基。
 
-### 线性变换
+## 线性变换
 
 对于线性空间 $V$ ，若存在规则 $\sigma$ ，使对于 $V$ 中任意元素 $\bm\alpha$ ，都有一个确定的元素 $\bm\alpha'\in V$ 与之对应，记作 $\sigma(\bm\alpha)=\bm\alpha'\in V$ ，则称 $\omicron$ 为线性空间 $V$ 的一个变换。
 
@@ -242,9 +242,9 @@ $$\bm B=\bm P^{-1}\bm A\bm P$$
 
 证明：由已知条件得
 
-$$\sigma(\varepsilon_1,\varepsilon_2,\cdots,\varepsilon_n)=(\varepsilon_1,\varepsilon_2,\cdots,\varepsilon_n)\bm A\\
-\sigma(\eta_1,\eta_2,\cdots,\eta_n)=(\eta_1,\eta_2,\cdots,\eta_n)\bm B\\
-(\eta_1,\eta_2,\cdots,\eta_n)=(\varepsilon_1,\varepsilon_2,\cdots,\varepsilon_n)\bm P$$
+$$\begin{aligned}\sigma(\varepsilon_1,\varepsilon_2,\cdots,\varepsilon_n)=\ &(\varepsilon_1,\varepsilon_2,\cdots,\varepsilon_n)\bm A\\
+\sigma(\eta_1,\eta_2,\cdots,\eta_n)=\ &(\eta_1,\eta_2,\cdots,\eta_n)\bm B\\
+(\eta_1,\eta_2,\cdots,\eta_n)=\ &(\varepsilon_1,\varepsilon_2,\cdots,\varepsilon_n)\bm P\end{aligned}$$
 
 此时
 

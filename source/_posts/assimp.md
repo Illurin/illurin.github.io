@@ -12,7 +12,7 @@ cover: /images/articles/cover_2.png
 
 Assimp库使用的架构是典型的树状结构，而这个架构在模型加载中也是比较好用的，因为它足够清晰，也便于理清模型当中部件的父子关系，下图简单地呈现了Assimp的架构：
 
-![Assimp架构（图片来自LearnOpenGL）](/images/articles/vulkan01/image_0.png)
+![Assimp架构（图片来自LearnOpenGL）](/images/articles/assimp/image_0.png)
 
 |    Struct   |                                              Content                                              |
 |:-----------:|:-------------------------------------------------------------------------------------------------:|
@@ -101,14 +101,12 @@ ReadFile方法常用的几个参数意义如下：
 
 ```C++
 void Model::ProcessNode(const aiScene* scene, aiNode* node) {
-	for (size_t i = 0; i < node->mNumMeshes; i++)
-	{
+	for (size_t i = 0; i < node->mNumMeshes; i++) {
 		aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
 		meshes.push_back(ProcessMesh(scene, mesh));
 	}
 
-	for (size_t i = 0; i < node->mNumChildren; i++)
-	{
+	for (size_t i = 0; i < node->mNumChildren; i++) {
 		ProcessNode(scene, node->mChildren[i]);
 	}
 }
@@ -176,14 +174,12 @@ Mesh Model::ProcessMesh(const aiScene* scene, aiMesh* mesh) {
 ```C++
 std::vector<UINT> Model::LoadMaterialTextures(aiMaterial* mat, aiTextureType type) {
 	std::vector<UINT> textures;
-	for (UINT i = 0; i < mat->GetTextureCount(type); i++)
-	{
+	for (UINT i = 0; i < mat->GetTextureCount(type); i++) {
 		aiString str;
 		mat->GetTexture(type, 0, &str);
 		bool skip = false;
 		std::string texturePath = directory + str.C_Str();
-		for (UINT j = 0; j < this->texturePath.size(); j++)
-		{
+		for (UINT j = 0; j < this->texturePath.size(); j++) {
 			if (this->texturePath[j] == texturePath) {
 				textures.push_back(j);
 				skip = true;
@@ -217,7 +213,7 @@ UINT Model::SetupMaterial(std::vector<UINT> diffuseMaps) {
 
 	UINT materialIndex;
 	bool skip = false;
-	for (UINT i = 0; i < materials.size(); i++){
+	for (UINT i = 0; i < materials.size(); i++) {
 		if (CompareMaterial(materials[i], material)) {
 			materialIndex = i;
 			skip = true;
@@ -251,8 +247,7 @@ bool CompareMaterial(MaterialInfo dest, MaterialInfo source) {
 void Model::SetupRenderInfo() {
 	renderInfo.resize(materials.size());
 
-	for (UINT i = 0; i < meshes.size(); i++)
-	{
+	for (UINT i = 0; i < meshes.size(); i++) {
 		UINT index = meshes[i].materialIndex;
 		UINT indexOffset = renderInfo[index].vertices.size();
 

@@ -58,7 +58,7 @@ $$f^{(n)}(x)=\frac{\text{d}^ny}{\text{d}x^n}$$
 2. $(ku)'=ku'$
 3. $(uv)'=u'v+uv'$
 $(uvw)'=u'vw+uv'w+uvw'$
-. $(\frac{u}{v})'=\frac{u'v-v'u}{v^2}$
+$(\frac{u}{v})'=\frac{u'v-v'u}{v^2}$
 
 初等函数求导：
 
