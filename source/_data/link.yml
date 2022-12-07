@@ -1,5 +1,5 @@
 - class_name: 友情链接
-  class_desc: 欢迎各位的支持
+  class_desc: 感谢各位的支持
   link_list:
     - name: ZuoTiJia
       link: https://zuotijia.github.io/

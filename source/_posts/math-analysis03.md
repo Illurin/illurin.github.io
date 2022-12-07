@@ -8,6 +8,7 @@ categories: 数学分析
 top_img: /images/articles/cover_5.png
 cover: /images/articles/cover_5.png
 katex: true
+description: 在本文中，我们初识积分（不定积分，定积分），了解微积分学基本定理及相关应用（曲率）。
 ---
 
 ## 不定积分
