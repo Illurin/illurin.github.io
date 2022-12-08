@@ -117,6 +117,9 @@ category_img:
 #  - category name: xxxxx
 category_per_img:
   Vulkan: /images/categories/vulkan_cover.jpg
+  渲染原理: /images/categories/renderer_cover.png
+  数学分析: /images/categories/math-analysis_cover.png
+  线性代数: /images/categories/linear-algebra_cover.png
 
 cover:
   # display the cover or not (是否顯示文章封面)
@@ -523,7 +526,7 @@ tag_ui: # 留空或 index
 # Website Background (設置網站背景)
 # can set it to color or image (可設置圖片 或者 顔色)
 # The formal of image: url(http://xxxxxx.com/xxx.jpg)
-background: url(/images/background.jpg)
+background: url(/images/background_1.jpg)
 
 # Footer Background
 footer_bg: true
