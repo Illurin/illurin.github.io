@@ -3,8 +3,8 @@ title: 软光线追踪渲染器学习笔记（一）：Whitted-Style光线追踪
 date: 2022-10-16 15:00:00
 tags: 计算机图形学
 categories: 渲染原理
-top_img: /images/articles/cover_4.jpg
-cover: /images/articles/cover_4.jpg
+top_img: /images/gallery/touhou_4.jpg
+cover: /images/gallery/touhou_4.jpg
 katex: true
 ---
 

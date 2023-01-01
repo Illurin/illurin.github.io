@@ -3,8 +3,8 @@ title: 软光栅化渲染器学习笔记（一）：简单几何图元
 date: 2022-10-15 23:59:57
 tags: 计算机图形学
 categories: 渲染原理
-top_img: /images/articles/cover_3.png
-cover: /images/articles/cover_3.png
+top_img: /images/gallery/touhou_3.png
+cover: /images/gallery/touhou_3.png
 katex: true
 ---
 

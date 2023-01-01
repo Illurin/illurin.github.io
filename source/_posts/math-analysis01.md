@@ -5,8 +5,8 @@ tags:
 	- 大学数学
 	- 微积分
 categories: 数学分析
-top_img: /images/articles/cover_5.png
-cover: /images/articles/cover_5.png
+top_img: /images/gallery/touhou_5.png
+cover: /images/gallery/touhou_5.png
 katex: true
 description: 在本文中，我们从最基本的实数和函数出发，了解极限，无穷小/大量，连续和一致连续这些数学分析的基础概念。
 ---

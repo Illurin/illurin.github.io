@@ -189,7 +189,7 @@ if (vk::createInstance(&instanceInfo, 0, &vkInfo.instance) != vk::Result::eSucce
 相应的，Vulkan也提供了回收实例对象的方法，有创建就有回收：
 
 ```C++
-vk::destroyInstance(vkInfo.instance, 0);
+vkInfo.instance.destroy();
 ```
 
 ### 创建DebugMessenger

@@ -5,8 +5,8 @@ tags:
 	- 大学数学
 	- 代数学
 categories: 线性代数
-top_img: /images/articles/cover_6.jpg
-cover: /images/articles/cover_6.jpg
+top_img: /images/gallery/arcaea_0.jpg
+cover: /images/gallery/arcaea_0.jpg
 katex: true
 description: 在本文中，我们主要研究秩的概念（矩阵的秩和向量组的秩），以及通过将线性方程组转化为矩阵的形式求解线性方程组。
 ---

@@ -5,8 +5,8 @@ tags:
 	- 大学数学
 	- 微积分
 categories: 数学分析
-top_img: /images/articles/cover_5.png
-cover: /images/articles/cover_5.png
+top_img: /images/gallery/touhou_5.png
+cover: /images/gallery/touhou_5.png
 katex: true
 description: 在本文中，我们研究导数和微分及其应用：微分中值定理，洛必达法则，泰勒公式，最后可以运用这些知识进行函数图像分析。
 ---

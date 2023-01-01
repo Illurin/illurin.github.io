@@ -1,0 +1,6 @@
+bottom:
+  - class_name: card_idea
+    name: 想法
+    icon: fa-solid fa-lightbulb
+    order: 0
+    html: “去创造吧，只因为你有能力去创造”<br>“万事具备，现在正是最适合追逐理想的时刻”

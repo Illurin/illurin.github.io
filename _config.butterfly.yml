@@ -13,6 +13,7 @@ menu:
   #   Music: /music/ || fas fa-music
   #   Movie: /movies/ || fas fa-video
   图库: /gallery/ || fa-solid fa-images
+  想法: /idea/ || fa-solid fa-lightbulb
   友链: /link/ || fas fa-link
   # About: /about/ || fas fa-heart
 
@@ -434,7 +435,7 @@ footer:
   owner:
     enable: true
     since: 2022
-  custom_text: Never give up your dream.
+  custom_text: Never give up your dream.<br><a href="https://beian.miit.gov.cn/" target="_blank">苏ICP备2022049609号-1</a>
   copyright: false # Copyright of theme and framework
 
 # Analysis
@@ -526,7 +527,7 @@ tag_ui: # 留空或 index
 # Website Background (設置網站背景)
 # can set it to color or image (可設置圖片 或者 顔色)
 # The formal of image: url(http://xxxxxx.com/xxx.jpg)
-background: url(/images/background_1.jpg)
+background: url(/images/gallery/touhou_1.jpg)
 
 # Footer Background
 footer_bg: true
@@ -684,31 +685,31 @@ aside:
     content: This is my Blog
   card_recent_post:
     enable: true
-    limit: 5 # if set 0 will show all
+    limit: 3 # if set 0 will show all
     sort: date # date or updated
-    sort_order: # Don't modify the setting unless you know how it works
+    sort_order: 1 # Don't modify the setting unless you know how it works
   card_categories:
     enable: true
     limit: 8 # if set 0 will show all
     expand: none # none/true/false
-    sort_order: # Don't modify the setting unless you know how it works
+    sort_order: 2 # Don't modify the setting unless you know how it works
   card_tags:
     enable: true
     limit: 40 # if set 0 will show all
-    color: false
-    sort_order: # Don't modify the setting unless you know how it works
+    color: true
+    sort_order: 3 # Don't modify the setting unless you know how it works
   card_archives:
     enable: true
     type: monthly # yearly or monthly
     format: MMMM YYYY # eg: YYYY年MM月
     order: -1 # Sort of order. 1, asc for ascending; -1, desc for descending
     limit: 8 # if set 0 will show all
-    sort_order: # Don't modify the setting unless you know how it works
+    sort_order: 4 # Don't modify the setting unless you know how it works
   card_webinfo:
     enable: true
     post_count: true
     last_push_date: true
-    sort_order: # Don't modify the setting unless you know how it works
+    sort_order: 5 # Don't modify the setting unless you know how it works
 
 # busuanzi count for PV / UV in site
 # 訪問人數

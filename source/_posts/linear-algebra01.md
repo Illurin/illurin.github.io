@@ -5,8 +5,8 @@ tags:
 	- 大学数学
 	- 代数学
 categories: 线性代数
-top_img: /images/articles/cover_6.jpg
-cover: /images/articles/cover_6.jpg
+top_img: /images/gallery/arcaea_0.jpg
+cover: /images/gallery/arcaea_0.jpg
 katex: true
 description: 在本文中，我们简单了解线性空间与线性变换的概念，并理解向量、矩阵和它们的关系。
 ---

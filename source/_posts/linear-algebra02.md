@@ -5,8 +5,8 @@ tags:
 	- 大学数学
 	- 代数学
 categories: 线性代数
-top_img: /images/articles/cover_6.jpg
-cover: /images/articles/cover_6.jpg
+top_img: /images/gallery/arcaea_0.jpg
+cover: /images/gallery/arcaea_0.jpg
 katex: true
 description: 在本文中，我们主要研究矩阵的基本概念，行列式的概念和计算，矩阵的逆以及如何在矩阵不可逆的情况下求广义逆矩阵。
 ---
