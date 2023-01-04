@@ -278,7 +278,7 @@ VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
 
 ### 缓冲视图BufferView
 
-为了让GPU访问缓冲，我们需要指定缓冲数据的具体属性和访问方式，因此需要一个缓冲视图。
+缓冲视图允许我们以类似读取图像数据的方式读取缓冲数据。
 
 > 注意，只有当Buffer的usage包含VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT或VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT的时候才可以为其创建缓冲视图。
 
@@ -292,7 +292,7 @@ typedef struct VkBufferViewCreateInfo {
   VkBuffer buffer;
   VkFormat format;
   VkDeviceSize offset;
-  VkDeviceSize range;bit set
+  VkDeviceSize range;
 } VkBufferViewCreateInfo;
 
 VkResult vkCreateBufferView(
